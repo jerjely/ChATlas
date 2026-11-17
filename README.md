@@ -2,8 +2,25 @@
 
 # ChATlas
 
-**Retina connectome explorer** for CAVE / Neuroglancer datasets (built for `stroeh_mouse_retina`).
-It places cells in **ChAT-normalised depth** (0 = OFF starburst band, 1 = ON band), using surfaces fitted to the labelled starburst amacrine cells around the region you look at.
+ChATlas is a desktop app for exploring the mouse retina electron-microscopy connectome in CAVE / Neuroglancer (built for `stroeh_mouse_retina`).
+It measures where each cell's dendrites stratify relative to the OFF and ON starburst (ChAT) bands (ChAT depth 0 = OFF band, 1 = ON band), using surfaces fitted to the starburst amacrine cells around the region you look at.
+With it you can identify and classify the synaptic partners of an annotated cell, map cell-type mosaics, search for cells in a chosen layer and view everything in 3D or open it in Neuroglancer.
+
+## Screenshots
+
+All screenshots show synthetic demo data, not real dataset records.
+
+![Synapse partners tab: an annotated wide-field amacrine cell with its bipolar and amacrine partners in 3D between the ChAT surfaces, and a table of partner types.](docs/screenshots/synapse_partners.jpg)
+
+![Partner depth plots: the target cell's stratification next to the ChAT depth of its synapse annotations, split by partner type.](docs/screenshots/partner_depth.jpg)
+
+![Cell types tab: all type 3a bipolar cells within 42 µm of a chosen point, shown in 3D above the fitted ChAT surfaces with nearby somata as dots.](docs/screenshots/cell_type_mosaic.jpg)
+
+![Stratification and mosaic plots for type 3a bipolar cells: depth profiles, soma positions with nearest-neighbour regularity, and depth versus arbor size.](docs/screenshots/stratification_mosaic.jpg)
+
+![Stratification search tab: finding wide-field cells whose arbors run through the type 3a layer inside a 30 µm search square.](docs/screenshots/stratification_search.jpg)
+
+![Cell viewer tab: cells opened by root ID, shown together in 3D with their ChAT surfaces and the selected cell's type, size and ChAT depth.](docs/screenshots/cell_viewer.jpg)
 
 ## Download and install
 
