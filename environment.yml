@@ -1,0 +1,28 @@
+name: chatlas
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pyside6
+  - qtpy
+  - vtk
+  - pyvista
+  - pyvistaqt
+  - numpy
+  - libblas=*=*openblas      # OpenBLAS instead of MKL (avoids DLL clashes with VTK/Qt on Windows)
+  - nomkl
+  - pandas
+  - scipy
+  - matplotlib
+  - scikit-learn
+  - trimesh
+  - requests
+  - pillow
+  - pip:
+      - caveclient
+      - cloud-volume
+      - crackle-codec
+      - compresso
+      - fastremap
+      - fast-simplification
