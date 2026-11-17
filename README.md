@@ -5,29 +5,29 @@
 **Retina connectome explorer** for CAVE / Neuroglancer datasets (built for `stroeh_mouse_retina`).
 It places cells in **ChAT-normalised depth** (0 = OFF starburst band, 1 = ON band), using surfaces fitted to the labelled starburst amacrine cells around the region you look at.
 
-## Install
+## Download and install
 
-ChATlas needs [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (Miniforge or Anaconda also work). The installer creates a conda environment called `chatlas`.
+**Easiest:** download the installer for your computer from the [latest release](https://github.com/jerjely/ChATlas/releases/latest) — no Miniconda or Python needed:
 
-Get the code: **Code → Download ZIP** on this page (then unzip), or `git clone https://github.com/jerjely/ChATlas.git`.
+| Computer | File |
+|---|---|
+| Windows (64-bit) | `ChATlas-<version>-Windows-x86_64.exe` |
+| Mac with Apple silicon | `ChATlas-<version>-MacOSX-arm64.pkg` |
+| Mac with Intel processor | `ChATlas-<version>-MacOSX-x86_64.pkg` |
 
-### Windows
-Double-click **`install.bat`**. It adds **ChATlas** shortcuts to the desktop and Start menu.
+The installers are not code-signed yet. On Windows, if SmartScreen appears, click **More info → Run anyway**; on macOS, **right-click the .pkg → Open** (or allow it in *System Settings → Privacy & Security*).
+Windows: shortcuts on the desktop and in the Start menu. macOS: **ChATlas** in Applications.
 
-### macOS (Apple Silicon and Intel)
-Double-click **`install.command`**. If macOS says it is from an unidentified developer, right-click it → **Open**, or run it from Terminal:
-```bash
-cd path/to/ChATlas
-bash install.command
-```
-It puts **ChATlas.app** in `~/Applications` (drag it to the Dock if you like).
+### From source (with Miniconda)
+
+Download the code (**Code → Download ZIP**, or `git clone https://github.com/jerjely/ChATlas.git`), then run **`install.bat`** (Windows) or **`install.command`** (macOS; if blocked, right-click → Open, or `bash install.command` in Terminal). This creates a conda environment called `chatlas`.
 
 ### First start
 Open **Settings**:
 - **Open token page**, log in with the Google account you use in Neuroglancer, copy the token, paste it and click **Save token**. Then **Test connection**.
 - Optional: point **mesh cache** to a folder of meshes you already downloaded, so nothing is downloaded twice. Click **Save settings**.
 
-To update: download the new version and run the installer again. `uninstall.bat` / `uninstall.command` remove the environment and shortcuts; your data folder (`~/ChATlas`: settings, mesh cache, outputs) is kept.
+To update: install the new version over the old one. Your data folder (`~/ChATlas`: settings, mesh cache, outputs) is never touched by installing or uninstalling.
 
 ## Synapse partners
 
@@ -58,6 +58,16 @@ Every tab has an **Open in Neuroglancer** button. It builds a Neuroglancer state
 - Distances: choose **straight line in 3D** or **along the cell** in the Partners tab. Path distances use the target's L2 chunk graph (chunked-graph adjacency + L2-cache positions; Dijkstra from the origin), falling back to the mesh surface. Annotations on pieces not connected to the origin get no path distance.
 - Partner direction (pre/post) is not encoded in line annotations.
 - Data folder: `~/ChATlas` (Windows: `%USERPROFILE%\ChATlas`) — settings, mesh cache, outputs, `chatlas.log`.
+
+## Releases (maintainers)
+
+Installers are built automatically by GitHub Actions (`.github/workflows/build-installers.yml`) with conda **constructor** (`installer/construct.yaml`):
+
+1. Set the new version in `chatlas/__init__.py` and `pyproject.toml`.
+2. Commit, then tag and push: `git tag v1.5.0 && git push origin v1.5.0` (in GitHub Desktop: *History → right-click the commit → Create Tag…*, then *Push*).
+3. About 20–30 minutes later the release appears under **Releases** with the three installers attached.
+
+The workflow can also be started by hand from the **Actions** tab (installers are then kept as workflow artifacts).
 
 ## License
 

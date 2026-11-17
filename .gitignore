@@ -6,3 +6,5 @@ dist/
 .DS_Store
 Thumbs.db
 mesh_cache/
+installer/wheelhouse.zip
+specs.txt

@@ -1,0 +1,123 @@
+# Builds self-contained ChATlas installers on GitHub's machines and attaches them to a release.
+#   Windows .exe (x86_64), macOS .pkg (Apple silicon) and macOS .pkg (Intel).
+# Trigger: push a version tag, e.g.  git tag v1.5.0 && git push origin v1.5.0
+# (the tag must match __version__ in chatlas/__init__.py). Can also be run by hand from the Actions tab
+# (then the installers are only kept as workflow artifacts, no release is made).
+name: Build installers
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows x86_64
+          - os: macos-15            # Apple silicon (arm64)
+            label: macOS Apple silicon
+          - os: macos-15-intel      # Intel (x86_64)
+            label: macOS Intel
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: build
+          python-version: "3.11"
+          channels: conda-forge
+          conda-remove-defaults: "true"
+
+      - name: Version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            V="${GITHUB_REF#refs/tags/v}"
+            APP=$(python -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('chatlas/__init__.py').read()).group(1))")
+            if [[ "$V" != "$APP" ]]; then echo "::error::tag v$V does not match chatlas/__init__.py ($APP)"; exit 1; fi
+          else
+            V=$(python -c "import re; print(re.search(r'__version__ = \"(.+?)\"', open('chatlas/__init__.py').read()).group(1))")
+          fi
+          echo "CHATLAS_VERSION=$V" >> "$GITHUB_ENV"
+          echo "Building ChATlas $V"
+
+      - name: Install constructor
+        run: conda install -y -n build constructor
+
+      - name: Probe environment (same packages as the installer)
+        run: |
+          python installer/build_wheelhouse.py specs > specs.txt
+          cat specs.txt
+          conda create -y -n probe --file specs.txt
+
+      - name: Bundle the pip-only packages (and ChATlas) as wheels
+        run: conda run -n probe python installer/build_wheelhouse.py wheels . installer/wheelhouse.zip
+
+      - name: Build installer
+        run: constructor installer --output-dir dist
+
+      - name: Smoke test (silent install, then import ChATlas)
+        continue-on-error: true          # informative only; never blocks the release
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            EXE=$(cygpath -w "$(ls dist/*.exe)")
+            DEST=$(cygpath -w "$RUNNER_TEMP/chatlas_test")
+            cmd.exe //c "start /wait \"\" \"$EXE\" /S /D=$DEST"
+            "$RUNNER_TEMP/chatlas_test/python.exe" -c "import chatlas, caveclient, cloudvolume, pyvistaqt; print('installed ok', chatlas.__version__)"
+          else
+            PKG=$(ls dist/*.pkg)
+            sudo installer -pkg "$PKG" -target / && ls -la /Applications/ChATlas.app/Contents || true
+            PY=$(ls -d /*/chatlas-app/bin/python /Library/chatlas-app/bin/python ~/Library/chatlas-app/bin/python 2>/dev/null | head -1)
+            echo "installed python: $PY"
+            "$PY" -c "import chatlas, caveclient, cloudvolume, pyvistaqt; print('installed ok', chatlas.__version__)"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chatlas-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.pkg
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          body: |
+            ## Install
+            Download the installer for your computer below — no Miniconda or Python needed.
+
+            | Computer | File |
+            |---|---|
+            | Windows (64-bit) | `ChATlas-…-Windows-x86_64.exe` |
+            | Mac with Apple silicon (M1–M4…) | `ChATlas-…-MacOSX-arm64.pkg` |
+            | Mac with Intel processor | `ChATlas-…-MacOSX-x86_64.pkg` |
+
+            The installers are not code-signed yet:
+            - **Windows**: if SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
+            - **macOS**: if it says the package can't be checked, **right-click the .pkg → Open**, or allow it in *System Settings → Privacy & Security*.
+
+            After installing: open **Settings**, paste your CAVE token and click **Save token**.

@@ -1,0 +1,52 @@
+# ChATlas installer recipe for conda "constructor".
+# Builds a self-contained installer (Python + Qt + VTK + scientific stack from conda-forge,
+# plus the pip-only packages as bundled wheels). Built in CI by .github/workflows/build-installers.yml.
+name: ChATlas
+version: {{ environ.get("CHATLAS_VERSION", "0.0.0") }}
+company: Szentágothai Research Centre, University of Pécs
+reverse_domain_identifier: hu.pte.chatlas
+channels:
+  - conda-forge
+specs:
+  - python 3.11.*
+  - pip
+  - pyside6
+  - qtpy
+  - vtk
+  - pyvista
+  - pyvistaqt
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - scikit-learn
+  - trimesh
+  - requests
+  - pillow
+  - pyyaml
+  - libblas=*=*openblas
+installer_type: exe    # [win]
+installer_type: pkg    # [osx]
+installer_type: sh     # [linux]
+license_file: ../LICENSE
+icon_image: ../chatlas/assets/logo.png
+initialize_conda: false
+initialize_by_default: false
+register_python: false
+register_python_default: false
+check_path_spaces: false
+default_prefix: '%USERPROFILE%\ChATlas-app'   # [win]
+default_prefix: ~/chatlas-app                 # [linux]
+pkg_name: chatlas-app                         # [osx]
+default_location_pkg: Library                 # [osx]
+extra_files:
+  - wheelhouse.zip
+  - post_install.py
+post_install: post_install.sh    # [unix]
+post_install: post_install.bat   # [win]
+pre_uninstall: pre_uninstall.bat # [win]
+post_install_desc: "Create ChATlas shortcuts"
+conclusion_text: |
+  ChATlas is installed.
+  Start it from the Start menu / desktop (Windows) or Applications (macOS).
+  First time: open Settings, paste your CAVE token and click Save token.
