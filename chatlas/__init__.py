@@ -7,4 +7,4 @@ for _k, _v in {"MKL_THREADING_LAYER": "SEQUENTIAL", "KMP_DUPLICATE_LIB_OK": "TRU
     _os.environ.setdefault(_k, _v)
 
 __app_name__ = "ChATlas"
-__version__ = "1.5.0"
+__version__ = "1.5.1"

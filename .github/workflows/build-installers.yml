@@ -1,6 +1,6 @@
 # Builds self-contained ChATlas installers on GitHub's machines and attaches them to a release.
 #   Windows .exe (x86_64), macOS .pkg (Apple silicon) and macOS .pkg (Intel).
-# Trigger: push a version tag, e.g.  git tag v1.5.0 && git push origin v1.5.0
+# Trigger: push a version tag, e.g.  git tag v1.5.1 && git push origin v1.5.1
 # (the tag must match __version__ in chatlas/__init__.py). Can also be run by hand from the Actions tab
 # (then the installers are only kept as workflow artifacts, no release is made).
 name: Build installers
@@ -14,9 +14,26 @@ permissions:
   contents: write
 
 jobs:
+  release:
+    # creates the (empty) release first; each build job uploads its installer to it directly,
+    # so no large workflow artifacts are stored (private repos have only 500 MB of artifact storage)
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "ChATlas ${TAG#v}" --notes-file .github/release_notes.md --generate-notes
+
   build:
     name: ${{ matrix.label }}
+    needs: release
+    if: always() && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -68,56 +85,46 @@ jobs:
       - name: Build installer
         run: constructor installer --output-dir dist
 
-      - name: Smoke test (silent install, then import ChATlas)
+      - name: Smoke test on Windows (silent install, then import ChATlas)
+        if: runner.os == 'Windows'
         continue-on-error: true          # informative only; never blocks the release
+        timeout-minutes: 20
+        shell: pwsh
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            EXE=$(cygpath -w "$(ls dist/*.exe)")
-            DEST=$(cygpath -w "$RUNNER_TEMP/chatlas_test")
-            cmd.exe //c "start /wait \"\" \"$EXE\" /S /D=$DEST"
-            "$RUNNER_TEMP/chatlas_test/python.exe" -c "import chatlas, caveclient, cloudvolume, pyvistaqt; print('installed ok', chatlas.__version__)"
-          else
-            PKG=$(ls dist/*.pkg)
-            sudo installer -pkg "$PKG" -target / && ls -la /Applications/ChATlas.app/Contents || true
-            PY=$(ls -d /*/chatlas-app/bin/python /Library/chatlas-app/bin/python ~/Library/chatlas-app/bin/python 2>/dev/null | head -1)
-            echo "installed python: $PY"
-            "$PY" -c "import chatlas, caveclient, cloudvolume, pyvistaqt; print('installed ok', chatlas.__version__)"
-          fi
+          $exe = (Get-ChildItem dist\*.exe | Select-Object -First 1).FullName
+          $dest = Join-Path $env:RUNNER_TEMP "chatlas_test"
+          $p = Start-Process -FilePath $exe -ArgumentList "/InstallationType=JustMe", "/RegisterPython=0", "/S", "/D=$dest" -Wait -PassThru
+          "installer exit code: $($p.ExitCode)"
+          & "$dest\python.exe" -c "import chatlas, caveclient, cloudvolume, pyvistaqt; print('installed ok', chatlas.__version__)"
 
-      - uses: actions/upload-artifact@v4
+      - name: Smoke test on macOS (install the pkg, then import ChATlas)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          PKG=$(ls dist/*.pkg)
+          sudo installer -pkg "$PKG" -target /
+          ls -la /Applications/ChATlas.app/Contents || true
+          PY=$(ls -d /Library/chatlas-app/bin/python ~/Library/chatlas-app/bin/python 2>/dev/null | head -1)
+          echo "installed python: $PY"
+          "$PY" -c "import chatlas, caveclient, cloudvolume, pyvistaqt; print('installed ok', chatlas.__version__)"
+
+      - name: Attach installer to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(dist/*.exe dist/*.pkg)
+          gh release upload "${GITHUB_REF#refs/tags/}" "${files[@]}" --clobber
+
+      - name: Keep installer as a short-lived artifact (manual runs only)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
         with:
           name: chatlas-${{ matrix.os }}
           path: |
             dist/*.exe
             dist/*.pkg
+          retention-days: 1
           if-no-files-found: error
-
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-      - run: ls -la dist
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
-          generate_release_notes: true
-          body: |
-            ## Install
-            Download the installer for your computer below — no Miniconda or Python needed.
-
-            | Computer | File |
-            |---|---|
-            | Windows (64-bit) | `ChATlas-…-Windows-x86_64.exe` |
-            | Mac with Apple silicon (M1–M4…) | `ChATlas-…-MacOSX-arm64.pkg` |
-            | Mac with Intel processor | `ChATlas-…-MacOSX-x86_64.pkg` |
-
-            The installers are not code-signed yet:
-            - **Windows**: if SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
-            - **macOS**: if it says the package can't be checked, **right-click the .pkg → Open**, or allow it in *System Settings → Privacy & Security*.
-
-            After installing: open **Settings**, paste your CAVE token and click **Save token**.

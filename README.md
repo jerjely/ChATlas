@@ -64,10 +64,12 @@ Every tab has an **Open in Neuroglancer** button. It builds a Neuroglancer state
 Installers are built automatically by GitHub Actions (`.github/workflows/build-installers.yml`) with conda **constructor** (`installer/construct.yaml`):
 
 1. Set the new version in `chatlas/__init__.py` and `pyproject.toml`.
-2. Commit, then tag and push: `git tag v1.5.0 && git push origin v1.5.0` (in GitHub Desktop: *History → right-click the commit → Create Tag…*, then *Push*).
+2. Commit, then tag and push: `git tag v1.5.1 && git push origin v1.5.1` (in GitHub Desktop: *History → right-click the commit → Create Tag…*, then *Push*).
 3. About 20–30 minutes later the release appears under **Releases** with the three installers attached.
 
-The workflow can also be started by hand from the **Actions** tab (installers are then kept as workflow artifacts).
+The workflow can also be started by hand from the **Actions** tab (installers are then kept as workflow artifacts for one day).
+
+Private repository: GitHub Free includes 2,000 Actions minutes a month, and macOS / Windows jobs count 10× / 2×, so one release uses roughly 550 minutes (about three releases a month for free). Public repositories build for free. Only collaborators can download releases of a private repository.
 
 ## License
 
