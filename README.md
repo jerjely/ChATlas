@@ -58,3 +58,7 @@ Every tab has an **Open in Neuroglancer** button. It builds a Neuroglancer state
 - Distances: choose **straight line in 3D** or **along the cell** in the Partners tab. Path distances use the target's L2 chunk graph (chunked-graph adjacency + L2-cache positions; Dijkstra from the origin), falling back to the mesh surface. Annotations on pieces not connected to the origin get no path distance.
 - Partner direction (pre/post) is not encoded in line annotations.
 - Data folder: `~/ChATlas` (Windows: `%USERPROFILE%\ChATlas`) — settings, mesh cache, outputs, `chatlas.log`.
+
+## License
+
+MIT — see [LICENSE](LICENSE). © 2026 Gergely Szarka, Szentágothai Research Centre, University of Pécs.
